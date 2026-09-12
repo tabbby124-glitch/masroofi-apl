@@ -1,0 +1,12 @@
+{
+  "name": "masroofi-api",
+  "version": "1.0.0",
+  "description": "API خلفي بسيط لنظام مصروفي - يستقبل المعاملات من n8n/واتساب ويحفظها",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

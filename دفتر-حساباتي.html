@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>دفتر حساباتي</title>
+<style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI','Geeza Pro',Tahoma,sans-serif; -webkit-tap-highlight-color:transparent; }
+    :root {
+        --navy:#0F2A3D; --navy-2:#163C54; --sand:#F6F2E9; --gold:#C79A3B; --gold-dark:#A87F2C;
+        --ink:#1B2530; --muted:#6B7480; --line:#E3DCC9; --good:#2E7D5B; --bad:#C0392B; --bg-card:#ffffff;
+    }
+    body { background:var(--sand); color:var(--ink); min-height:100vh; display:flex; justify-content:center; padding:16px 10px 90px; }
+    .app { width:100%; max-width:480px; }
+
+    .main-header { padding:4px 4px 16px; display:flex; justify-content:space-between; align-items:center; }
+    .main-header h1 { font-size:24px; color:var(--navy); font-weight:800; }
+    .main-header h1 span { color:var(--gold); }
+    .main-header .version { font-size:11px; color:var(--muted); background:#e9e2d2; padding:4px 12px; border-radius:30px; }
+
+    /* DASHBOARD CARDS */
+    .balance-hero { background:linear-gradient(135deg,var(--navy),var(--navy-2)); color:#fff; padding:20px 20px 18px; border-radius:18px; margin-bottom:14px; box-shadow:0 8px 18px rgba(15,42,61,0.25); }
+    .balance-hero .label { font-size:13px; color:#B9C8D2; font-weight:600; }
+    .balance-hero .amount { font-size:34px; font-weight:800; display:block; margin:4px 0 14px; letter-spacing:0.5px; }
+    .balance-hero .amount.neg { color:#ff8a80; }
+    .mini-row { display:flex; gap:10px; }
+    .mini-stat { flex:1; background:rgba(255,255,255,0.08); border-radius:12px; padding:10px 12px; }
+    .mini-stat .t { font-size:11px; color:#B9C8D2; margin-bottom:2px; }
+    .mini-stat .v { font-size:16px; font-weight:800; }
+    .mini-stat.in .v { color:#7CD9A8; }
+    .mini-stat.out .v { color:#FF9E9E; }
+
+    .stat-row { display:flex; gap:10px; margin-bottom:16px; }
+    .stat-card { flex:1; background:var(--bg-card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; }
+    .stat-card .t { font-size:12px; color:var(--muted); font-weight:700; }
+    .stat-card .v { font-size:18px; font-weight:800; margin-top:4px; }
+    .stat-card.acc-total .v { color:var(--navy-2); }
+
+    /* TABS */
+    .tab-bar { display:flex; gap:4px; margin-bottom:18px; background:#e9e2d2; padding:5px; border-radius:16px; overflow-x:auto; }
+    .tab { flex:1; padding:11px 4px; text-align:center; background:transparent; border:none; border-radius:12px; font-weight:700; font-size:12.5px; color:var(--muted); cursor:pointer; white-space:nowrap; }
+    .tab.active { background:white; color:var(--navy); box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+    .tab:active { transform:scale(0.96); }
+    .tab-content { display:block; }
+    .tab-content.hide { display:none; }
+
+    .card { background:var(--bg-card); border:1px solid var(--line); border-radius:16px; padding:18px 16px 20px; margin-bottom:16px; box-shadow:0 2px 8px rgba(0,0,0,0.02); }
+    .card-title { font-weight:700; font-size:16px; color:var(--navy-2); margin-bottom:16px; border-right:4px solid var(--gold); padding-right:12px; display:flex; justify-content:space-between; align-items:center; }
+
+    label { display:block; font-size:13px; font-weight:700; color:var(--navy-2); margin-top:14px; margin-bottom:6px; }
+    select, input, textarea { width:100%; padding:13px 14px; border:1.5px solid var(--line); border-radius:10px; font-size:15px; background:#fcfaf7; color:var(--ink); }
+    select:focus, input:focus, textarea:focus { outline:none; border-color:var(--gold-dark); box-shadow:0 0 0 3px rgba(199,154,59,0.18); background:white; }
+    .hint { font-size:12.5px; color:var(--muted); margin-top:6px; }
+    .hint b { color:var(--navy-2); }
+
+    .btn { width:100%; padding:14px; background:var(--gold); color:var(--navy); border:none; border-radius:12px; font-size:16px; font-weight:800; cursor:pointer; margin-top:18px; }
+    .btn:active { transform:scale(0.97); background:var(--gold-dark); }
+    .btn-danger { background:#dc2626; color:#fff; }
+    .btn-danger:active { background:#b91c1c; }
+    .btn-sm { padding:8px 14px; font-size:12.5px; width:auto; margin-top:0; border-radius:30px; }
+    .btn-outline { background:transparent; border:1.5px solid var(--gold-dark); color:var(--gold-dark); }
+
+    /* type toggle (income/expense) */
+    .type-toggle { display:flex; gap:8px; margin-top:14px; }
+    .type-btn { flex:1; padding:12px 6px; border-radius:12px; border:1.5px solid var(--line); background:#fcfaf7; text-align:center; font-weight:700; font-size:14px; color:var(--muted); cursor:pointer; }
+    .type-btn.sel-income.active { background:#E6F5EC; border-color:var(--good); color:var(--good); }
+    .type-btn.sel-expense.active { background:#FBEAEA; border-color:var(--bad); color:var(--bad); }
+
+    /* category grid */
+    .cat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:8px; }
+    .cat-chip { display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 4px; border-radius:12px; border:1.5px solid var(--line); background:#fcfaf7; cursor:pointer; }
+    .cat-chip .ic { font-size:20px; }
+    .cat-chip .nm { font-size:10.5px; color:var(--muted); font-weight:600; text-align:center; line-height:1.2; }
+    .cat-chip.active { border-color:var(--gold-dark); background:#FBF3E3; }
+    .cat-chip.active .nm { color:var(--navy-2); }
+
+    /* search / filter */
+    .filter-row { display:flex; gap:8px; margin-bottom:14px; }
+    .filter-row input { flex:1; }
+    .filter-pills { display:flex; gap:6px; margin-bottom:14px; overflow-x:auto; }
+    .pill { padding:8px 16px; border-radius:30px; background:#e9e2d2; font-size:12.5px; font-weight:700; color:var(--muted); white-space:nowrap; cursor:pointer; border:none; }
+    .pill.active { background:var(--navy); color:#fff; }
+
+    /* transaction list item */
+    .tx-row { display:flex; align-items:center; gap:12px; padding:12px 6px; border-bottom:1px solid #F0EBDD; }
+    .tx-row:last-child { border-bottom:none; }
+    .tx-icon { width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:19px; flex-shrink:0; }
+    .tx-icon.income { background:#E6F5EC; }
+    .tx-icon.expense { background:#FBEAEA; }
+    .tx-mid { flex:1; min-width:0; }
+    .tx-mid .cat { font-weight:700; font-size:14.5px; }
+    .tx-mid .meta { font-size:11.5px; color:var(--muted); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .tx-amt { font-weight:800; font-size:15px; flex-shrink:0; }
+    .tx-amt.income { color:var(--good); }
+    .tx-amt.expense { color:var(--bad); }
+    .tx-del { background:none; border:none; color:#c9c2ac; font-size:17px; cursor:pointer; padding:4px 2px; }
+    .tx-del:active { color:#dc2626; }
+
+    /* category manage list */
+    .catman-item { display:flex; align-items:center; gap:10px; background:#f8f6f1; padding:10px 12px; border-radius:12px; margin-bottom:8px; }
+    .catman-item .ic { font-size:19px; }
+    .catman-item .nm { flex:1; font-weight:700; font-size:14px; }
+    .catman-item .badge { font-size:10.5px; padding:2px 10px; border-radius:20px; font-weight:700; }
+    .catman-item .badge.income { background:#E6F5EC; color:var(--good); }
+    .catman-item .badge.expense { background:#FBEAEA; color:var(--bad); }
+
+    /* bank item */
+    .bank-item { display:flex; justify-content:space-between; align-items:center; background:#f8f6f1; padding:12px 14px; border-radius:12px; margin-bottom:8px; border-right:4px solid var(--gold); }
+    .bank-info .name { font-weight:700; font-size:14.5px; }
+    .bank-info .acc { font-size:11.5px; color:var(--muted); }
+    .bank-info .balance { font-size:13.5px; font-weight:600; margin-top:2px; }
+    .bank-info .balance span { color:var(--good); }
+    .delete-btn { background:none; border:none; color:#94a3b8; font-size:19px; cursor:pointer; padding:0 6px; }
+    .delete-btn:active { color:#dc2626; }
+
+    .empty-msg { color:var(--muted); text-align:center; padding:26px 0; font-size:13.5px; }
+
+    .digits-row { display:flex; align-items:center; gap:8px; }
+    .fixed-tag { font-family:'Consolas','Courier New',monospace; font-size:13px; color:var(--muted); background:var(--sand); padding:11px 7px; border-radius:8px; white-space:nowrap; letter-spacing:1px; border:1px solid var(--line); font-weight:600; }
+    input#bbanDigits { flex:1; min-width:0; padding:12px 8px; border-radius:10px; border:1.5px solid var(--line); font-size:17px; font-family:'Consolas','Courier New',monospace; letter-spacing:2px; text-align:center; }
+    .result-box { background:var(--navy); border-radius:14px; padding:18px; color:#fff; margin-top:10px; }
+    .result-box .label { font-size:12px; color:#B9C8D2; font-weight:700; }
+    .result-box .number { font-family:'Consolas','Courier New',monospace; font-size:22px; letter-spacing:2px; direction:ltr; text-align:center; padding:14px 6px; background:rgba(255,255,255,0.07); border-radius:10px; border:1px dashed rgba(255,255,255,0.25); word-spacing:6px; margin:12px 0; overflow-x:auto; }
+    .result-box .number .blank { color:rgba(255,255,255,0.35); }
+    .result-box .copy-btn { width:100%; padding:14px; border:none; border-radius:10px; background:var(--gold); color:var(--navy); font-size:15px; font-weight:800; cursor:pointer; }
+    .result-box .copy-btn.copied { background:var(--good); color:#fff; }
+    .result-box .copy-btn:disabled { background:rgba(255,255,255,0.15); color:rgba(255,255,255,0.5); }
+    .special-note { background:#FBF3E3; border:1px solid var(--line); border-radius:12px; padding:14px 16px; font-size:13px; line-height:1.7; color:#5A4A22; margin:10px 0; }
+
+    .footer { text-align:center; font-size:11.5px; color:var(--muted); margin-top:20px; border-top:1px solid var(--line); padding-top:16px; }
+    .footer strong { color:var(--navy-2); }
+    .row-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+    .subnav { display:flex; gap:8px; margin-bottom:16px; }
+    .subnav button { flex:1; padding:10px; border-radius:12px; border:1.5px solid var(--line); background:#fcfaf7; font-weight:700; font-size:12.5px; color:var(--muted); cursor:pointer; }
+    .subnav button.active { background:var(--navy); border-color:var(--navy); color:#fff; }
+    .sub-content.hide { display:none; }
+
+    .modal-bg { position:fixed; inset:0; background:rgba(15,42,61,0.45); display:flex; align-items:flex-end; justify-content:center; z-index:50; }
+    .modal-bg.hide { display:none; }
+    .modal { background:#fff; width:100%; max-width:480px; border-radius:20px 20px 0 0; padding:20px 18px 26px; max-height:85vh; overflow-y:auto; }
+    .modal h3 { font-size:16px; color:var(--navy-2); margin-bottom:14px; }
+    .icon-pick { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-top:6px; }
+    .icon-pick span { text-align:center; padding:8px 0; border-radius:8px; border:1.5px solid var(--line); cursor:pointer; font-size:18px; }
+    .icon-pick span.active { border-color:var(--gold-dark); background:#FBF3E3; }
+</style>
+</head>
+<body>
+<div class="app">
+
+    <div class="main-header">
+        <h1>دفتر <span>حساباتي</span></h1>
+        <div class="version">v2</div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tab-bar">
+        <button class="tab active" data-tab="tabHome">🏠 الرئيسية</button>
+        <button class="tab" data-tab="tabTx">💵 المعاملات</button>
+        <button class="tab" data-tab="tabBanks">🏦 حساباتي</button>
+        <button class="tab" data-tab="tabBban">🔢 BBAN</button>
+    </div>
+
+    <!-- ================= TAB 1: HOME / DASHBOARD ================= -->
+    <div id="tabHome" class="tab-content">
+        <div class="balance-hero">
+            <div class="label">صافي الرصيد (دخل - مصروف)</div>
+            <span class="amount" id="homeNet">0.00</span>
+            <div class="mini-row">
+                <div class="mini-stat in"><div class="t">⬆️ إجمالي الدخل</div><div class="v" id="homeIncome">0.00</div></div>
+                <div class="mini-stat out"><div class="t">⬇️ إجمالي المصروف</div><div class="v" id="homeExpense">0.00</div></div>
+            </div>
+        </div>
+
+        <div class="stat-row">
+            <div class="stat-card acc-total">
+                <div class="t">🏦 أرصدة الحسابات البنكية</div>
+                <div class="v" id="homeBankTotal">0.00</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">🕒 آخر المعاملات</div>
+            <div id="homeRecentList"><div class="empty-msg">لا توجد معاملات بعد</div></div>
+        </div>
+
+        <div class="footer"><strong>تصميم وتطوير:</strong> باش مهندس الطيب</div>
+    </div>
+
+    <!-- ================= TAB 2: TRANSACTIONS ================= -->
+    <div id="tabTx" class="tab-content hide">
+        <div class="card">
+            <div class="card-title">➕ إضافة معاملة</div>
+
+            <div class="type-toggle">
+                <button type="button" class="type-btn sel-income" id="typeIncomeBtn" onclick="setTxType('income')">⬆️ دخل</button>
+                <button type="button" class="type-btn sel-expense" id="typeExpenseBtn" onclick="setTxType('expense')">⬇️ مصروف</button>
+            </div>
+
+            <label>التصنيف</label>
+            <div class="cat-grid" id="txCatGrid"></div>
+
+            <label>المبلغ</label>
+            <input type="number" id="txAmount" placeholder="0">
+
+            <label>الوصف (اختياري)</label>
+            <input type="text" id="txNote" placeholder="مثال: فطور، فاتورة كهرباء...">
+
+            <label>التاريخ</label>
+            <input type="date" id="txDate">
+
+            <label>ربط بحساب بنكي (اختياري)</label>
+            <select id="txAccount"><option value="">بدون ربط</option></select>
+
+            <button class="btn" onclick="addTx()">✅ حفظ المعاملة</button>
+        </div>
+
+        <div class="card">
+            <div class="card-title">📜 سجل المعاملات
+                <button class="btn btn-sm btn-outline" onclick="openCatManager()">🏷️ التصنيفات</button>
+            </div>
+            <div class="filter-row">
+                <input type="text" id="txSearch" placeholder="🔍 بحث في الوصف أو التصنيف..." oninput="renderTxList()">
+            </div>
+            <div class="filter-pills">
+                <button class="pill active" data-f="all" onclick="setTxFilter('all')">الكل</button>
+                <button class="pill" data-f="income" onclick="setTxFilter('income')">الدخل</button>
+                <button class="pill" data-f="expense" onclick="setTxFilter('expense')">المصروف</button>
+            </div>
+            <button class="btn btn-danger btn-sm" style="margin-bottom:14px;" onclick="clearAllData()">🗑️ مسح كل البيانات</button>
+            <div id="txList"><div class="empty-msg">لا توجد معاملات</div></div>
+        </div>
+    </div>
+
+    <!-- ================= TAB 3: BANK ACCOUNTS ================= -->
+    <div id="tabBanks" class="tab-content hide">
+        <div class="subnav">
+            <button class="active" data-sub="subAccounts" onclick="setSubTab('subAccounts')">📋 الحسابات</button>
+            <button data-sub="subTransfer" onclick="setSubTab('subTransfer')">💸 تحويلات</button>
+        </div>
+
+        <div id="subAccounts" class="sub-content">
+            <div class="card">
+                <div class="card-title">➕ إضافة حساب بنكي</div>
+                <label>البنك</label>
+                <select id="bankSelect"></select>
+                <div id="bbanHint" class="hint" style="margin-top:4px;">📌 صيغة BBAN: تظهر عند الاختيار</div>
+                <label>رقم الحساب (BBAN)</label>
+                <input type="text" id="accountNumber" placeholder="أدخل الرقم الكامل">
+                <label>الرصيد الافتتاحي</label>
+                <input type="number" id="initialBalance" placeholder="0" value="0">
+                <button class="btn" onclick="addAccount()">➕ إضافة الحساب</button>
+            </div>
+            <div class="card">
+                <div class="card-title">📋 حساباتي البنكية</div>
+                <div id="accountsList"><div class="empty-msg">لا توجد حسابات، أضف حسابك الأول</div></div>
+            </div>
+        </div>
+
+        <div id="subTransfer" class="sub-content hide">
+            <div class="card">
+                <div class="card-title">💸 تسجيل تحويل جديد</div>
+                <label>تحويل من (حسابي)</label>
+                <select id="transferFrom"></select>
+                <label>نوع التحويل</label>
+                <select id="transferType" onchange="toggleTransferTarget()">
+                    <option value="internal">بين حساباتي (داخلي)</option>
+                    <option value="external">إلى حساب خارجي</option>
+                </select>
+                <div id="internalTarget">
+                    <label>تحويل إلى (حسابي الآخر)</label>
+                    <select id="transferToInternal"></select>
+                </div>
+                <div id="externalTarget" class="hide">
+                    <label>اسم المستفيد الخارجي</label>
+                    <input type="text" id="externalName" placeholder="مثل: أحمد محمد">
+                    <label>رقم حساب المستفيد</label>
+                    <input type="text" id="externalAccount" placeholder="رقم BBAN">
+                    <label>البنك المستفيد</label>
+                    <input type="text" id="externalBank" placeholder="اسم البنك">
+                </div>
+                <label>المبلغ (جنيه)</label>
+                <input type="number" id="transferAmount" placeholder="المبلغ">
+                <label>الغرض (لشنو؟)</label>
+                <input type="text" id="transferNote" placeholder="مثال: شراء بقالة، إيجار...">
+                <button class="btn" onclick="addTransfer()">✅ تسجيل التحويل</button>
+            </div>
+            <div class="card">
+                <div class="card-title">📜 سجل التحويلات</div>
+                <div id="transfersList"><div class="empty-msg">لا توجد تحويلات</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= TAB 4: BBAN GENERATOR ================= -->
+    <div id="tabBban" class="tab-content hide">
+        <div class="card">
+            <div class="card-title">🔢 مولد BBAN السريع</div>
+            <p style="font-size:13px; color:var(--muted); margin-bottom:12px;">اختر البنك، اكتب رقم حسابك، وانسخ الرقم البنكي الكامل.</p>
+            <label>البنك</label>
+            <select id="bbanBankSelect"></select>
+            <div id="bbanInputArea">
+                <div id="bbanLengthPicker" style="display:none; margin-top:10px;">
+                    <label>طول رقم حسابك</label>
+                    <select id="bbanLengthSelect"></select>
+                </div>
+                <label style="margin-top:12px;">أرقام حسابك</label>
+                <div class="digits-row">
+                    <span class="fixed-tag" id="bbanPrefixTag"></span>
+                    <input id="bbanDigits" inputmode="numeric" autocomplete="off" placeholder="">
+                    <span class="fixed-tag" id="bbanSuffixTag"></span>
+                </div>
+                <div class="hint" id="bbanHintText"></div>
+            </div>
+            <div id="bbanSpecialNote" class="special-note" style="display:none;"></div>
+            <div class="result-box" id="bbanResultBox">
+                <div class="label">الرقم البنكي الكامل (BBAN)</div>
+                <div class="number" id="bbanResultNumber">—</div>
+                <button class="copy-btn" id="bbanCopyBtn">نسخ الرقم</button>
+            </div>
+        </div>
+        <div class="footer"><strong>تصميم وتطوير:</strong> باش مهندس الطيب</div>
+    </div>
+
+</div>
+
+<!-- ============ CATEGORY MANAGER MODAL ============ -->
+<div class="modal-bg hide" id="catModalBg" onclick="if(event.target===this) closeCatManager()">
+    <div class="modal">
+        <h3>🏷️ إدارة التصنيفات</h3>
+        <div class="type-toggle" style="margin-top:0;">
+            <button type="button" class="type-btn sel-income active" id="catTypeIncomeBtn" onclick="setCatManType('income')">دخل</button>
+            <button type="button" class="type-btn sel-expense" id="catTypeExpenseBtn" onclick="setCatManType('expense')">مصروف</button>
+        </div>
+        <div id="catManList" style="margin-top:14px;"></div>
+
+        <label>اسم تصنيف جديد</label>
+        <input type="text" id="newCatName" placeholder="مثال: اشتراكات">
+        <label>الأيقونة</label>
+        <div class="icon-pick" id="newCatIconPick"></div>
+        <button class="btn" onclick="addCategory()">➕ إضافة تصنيف</button>
+        <button class="btn btn-outline" style="margin-top:10px;" onclick="closeCatManager()">إغلاق</button>
+    </div>
+</div>
+
+<script>
+    // ============================================================
+    // DATA: BANKS
+    // ============================================================
+    const BANKS = [
+        { id: 1,  name: 'بنك الخرطوم (بنكك)',          prefix: '040', x: 7, suffix: '0001', bban: '040XXXXXXXX0001' },
+        { id: 2,  name: 'بنك أم درمان الوطني (أوكاش)',  prefix: '240', x: 6, suffix: '00001', bban: '240XXXXXXXX0001' },
+        { id: 3,  name: 'بنك فيصل الإسلامي (فوري)',     prefix: '02', x: 8, suffix: '0001', bban: '02XXXXXXXX0001' },
+        { id: 4,  name: 'بنك النيل الأزرق (مشرق)',      prefix: '150000', x: 8, suffix: '', bban: '150XXXXXXXX0001' },
+        { id: 5,  name: 'البنك الإسلامي السوداني (أمن بلس)', prefix: '14000', x: 4, xOptions: [4,6], suffix: '00001', bban: '140XXXXXXXX0001' },
+        { id: 6,  name: 'بنك النيل (ساهل)', special: true, text: 'يُستخرج رقم BBAN لهذا البنك من داخل تطبيق ساهل نفسه، ولا توجد له صيغة ثابتة يمكن حسابها هنا.' },
+        { id: 7,  name: 'بنك المزارع التجاري (مصرفك)',  prefix: '222', x: 11, suffix: '', bban: '222XXXXXXXXXXXXX' },
+        { id: 8,  name: 'البنك الفرنسي السوداني',       prefix: '110', x: 6, suffix: '00001', bban: '110XXXXXXXX0001' },
+        { id: 9,  name: 'البنك الزراعي السوداني (الزراعي موبايل)', prefix: '03', x: 7, suffix: '01001', bban: '03XXXXXXXX01001' },
+        { id: 10, name: 'بنك السلام السوداني',           prefix: '180', x: 6, suffix: '00001', bban: '180XXXXXXXX0001' },
+        { id: 11, name: 'بنك البركة السوداني',           prefix: '070', x: 6, suffix: '00001', bban: '070XXXXXXXX0001' },
+        { id: 12, name: 'بنك الثروة الحيوانية',          prefix: '090', x: 6, suffix: '00001', bban: '090XXXXXXXX0001' },
+        { id: 13, name: 'بنك العمال الوطني',             prefix: '120', x: 6, suffix: '00001', bban: '120XXXXXXXX0001' },
+        { id: 14, name: 'البنك العقاري التجاري',         prefix: '160', x: 6, suffix: '00001', bban: '160XXXXXXXX0001' },
+        { id: 15, name: 'بنك التنمية الصناعية',          prefix: '130', x: 6, suffix: '00001', bban: '130XXXXXXXX0001' },
+        { id: 16, name: 'بنك المال المتحد',              prefix: '170', x: 6, suffix: '00001', bban: '170XXXXXXXX0001' }
+    ];
+
+    const DEFAULT_CATEGORIES = [
+        { id:'c1', name:'راتب', icon:'💰', type:'income' },
+        { id:'c2', name:'هدية', icon:'🎁', type:'income' },
+        { id:'c3', name:'ترحيل رصيد', icon:'↩️', type:'income' },
+        { id:'c4', name:'دخل إضافي', icon:'📈', type:'income' },
+        { id:'c5', name:'عام', icon:'📌', type:'income' },
+        { id:'c6', name:'فطور', icon:'☕', type:'expense' },
+        { id:'c7', name:'عشاء', icon:'🌙', type:'expense' },
+        { id:'c8', name:'طعام', icon:'🍽️', type:'expense' },
+        { id:'c9', name:'مواصلات', icon:'🚗', type:'expense' },
+        { id:'c10', name:'فواتير', icon:'🧾', type:'expense' },
+        { id:'c11', name:'تسوق', icon:'🛍️', type:'expense' },
+        { id:'c12', name:'صحة', icon:'💊', type:'expense' },
+        { id:'c13', name:'إيجار', icon:'🏠', type:'expense' },
+        { id:'c14', name:'تعليم', icon:'📚', type:'expense' },
+        { id:'c15', name:'ترفيه', icon:'🎉', type:'expense' },
+        { id:'c16', name:'عام', icon:'📌', type:'expense' }
+    ];
+    const ICON_CHOICES = ['💰','🎁','📈','🍽️','☕','🌙','🚗','🧾','🛍️','💊','🏠','📚','🎉','📌','🚀','💡','🐄','🌾','📦','🩺','🎓'];
+
+    // ============================================================
+    // STATE (localStorage)
+    // ============================================================
+    let accounts = JSON.parse(localStorage.getItem('myBankAccounts')) || [];
+    let transfers = JSON.parse(localStorage.getItem('myBankTransfers')) || JSON.parse(localStorage.getItem('myBankTransactions')) || [];
+    let categories = JSON.parse(localStorage.getItem('myCategories')) || DEFAULT_CATEGORIES;
+    let txns = JSON.parse(localStorage.getItem('myTxns')) || [];
+    let nextAccId = parseInt(localStorage.getItem('nextAccId')) || 1;
+    let nextCatId = parseInt(localStorage.getItem('nextCatId')) || (DEFAULT_CATEGORIES.length + 1);
+
+    function saveAll() {
+        localStorage.setItem('myBankAccounts', JSON.stringify(accounts));
+        localStorage.setItem('myBankTransfers', JSON.stringify(transfers));
+        localStorage.setItem('myCategories', JSON.stringify(categories));
+        localStorage.setItem('myTxns', JSON.stringify(txns));
+        localStorage.setItem('nextAccId', nextAccId);
+        localStorage.setItem('nextCatId', nextCatId);
+    }
+
+    function getAccountById(id) { return accounts.find(a => a.id === id); }
+    function formatNum(n) { return Number(n).toFixed(2); }
+
+    function calculateAccountBalance(accountId) {
+        const acc = getAccountById(accountId);
+        if (!acc) return 0;
+        let bal = acc.initialBalance;
+        transfers.forEach(tx => {
+            if (tx.from === accountId) bal -= tx.amount;
+            if (tx.to === accountId) bal += tx.amount;
+        });
+        txns.forEach(tx => {
+            if (tx.accountId === accountId) bal += (tx.type === 'income' ? tx.amount : -tx.amount);
+        });
+        return bal;
+    }
+
+    // ============================================================
+    // DASHBOARD
+    // ============================================================
+    function renderDashboard() {
+        const income = txns.filter(t => t.type === 'income').reduce((s,t) => s + t.amount, 0);
+        const expense = txns.filter(t => t.type === 'expense').reduce((s,t) => s + t.amount, 0);
+        const net = income - expense;
+        const netEl = document.getElementById('homeNet');
+        netEl.textContent = formatNum(net) + ' جنيه';
+        netEl.classList.toggle('neg', net < 0);
+        document.getElementById('homeIncome').textContent = formatNum(income);
+        document.getElementById('homeExpense').textContent = formatNum(expense);
+
+        const bankTotal = accounts.reduce((s,a) => s + calculateAccountBalance(a.id), 0);
+        document.getElementById('homeBankTotal').textContent = formatNum(bankTotal) + ' جنيه';
+
+        const recentBox = document.getElementById('homeRecentList');
+        const recent = [...txns].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0,5);
+        if (recent.length === 0) { recentBox.innerHTML = '<div class="empty-msg">لا توجد معاملات بعد</div>'; return; }
+        recentBox.innerHTML = recent.map(t => txRowHtml(t)).join('');
+    }
+
+    // ============================================================
+    // CATEGORIES
+    // ============================================================
+    let currentTxType = 'expense';
+    let selectedCatId = null;
+
+    function catsByType(type) { return categories.filter(c => c.type === type); }
+
+    function setTxType(type) {
+        currentTxType = type;
+        document.getElementById('typeIncomeBtn').classList.toggle('active', type === 'income');
+        document.getElementById('typeExpenseBtn').classList.toggle('active', type === 'expense');
+        selectedCatId = null;
+        renderTxCatGrid();
+    }
+
+    function renderTxCatGrid() {
+        const grid = document.getElementById('txCatGrid');
+        const cats = catsByType(currentTxType);
+        if (!selectedCatId && cats.length) selectedCatId = cats[0].id;
+        grid.innerHTML = cats.map(c => `
+            <div class="cat-chip ${c.id === selectedCatId ? 'active' : ''}" onclick="pickCat('${c.id}')">
+                <span class="ic">${c.icon}</span><span class="nm">${c.name}</span>
+            </div>
+        `).join('');
+    }
+    function pickCat(id) { selectedCatId = id; renderTxCatGrid(); }
+
+    function populateTxAccountSelect() {
+        const sel = document.getElementById('txAccount');
+        const cur = sel.value;
+        sel.innerHTML = '<option value="">بدون ربط</option>';
+        accounts.forEach(acc => {
+            const bank = BANKS.find(b => b.id == acc.bankId);
+            const opt = document.createElement('option');
+            opt.value = acc.id;
+            opt.textContent = `${bank ? bank.name : 'بنك'} (${acc.accountNumber})`;
+            sel.appendChild(opt);
+        });
+        if ([...sel.options].some(o => o.value == cur)) sel.value = cur;
+    }
+
+    function addTx() {
+        const amount = parseFloat(document.getElementById('txAmount').value);
+        if (!amount || amount <= 0) { alert('أدخل مبلغ صحيح'); return; }
+        if (!selectedCatId) { alert('اختر تصنيف'); return; }
+        const note = document.getElementById('txNote').value.trim();
+        const date = document.getElementById('txDate').value || new Date().toISOString().slice(0,10);
+        const accountId = document.getElementById('txAccount').value ? parseInt(document.getElementById('txAccount').value) : null;
+
+        txns.push({ id: Date.now(), type: currentTxType, categoryId: selectedCatId, amount, note, date, accountId });
+        saveAll();
+        document.getElementById('txAmount').value = '';
+        document.getElementById('txNote').value = '';
+        renderTxList();
+        renderDashboard();
+        renderAccounts();
+        alert('✅ تم حفظ المعاملة');
+    }
+
+    function txRowHtml(t) {
+        const cat = categories.find(c => c.id === t.categoryId) || { name:'—', icon:'📌' };
+        return `
+            <div class="tx-row">
+                <div class="tx-icon ${t.type}">${cat.icon}</div>
+                <div class="tx-mid">
+                    <div class="cat">${cat.name}</div>
+                    <div class="meta">${t.note ? t.note + ' · ' : ''}${t.date}</div>
+                </div>
+                <div class="tx-amt ${t.type}">${t.type === 'income' ? '+' : '-'}${formatNum(t.amount)}</div>
+                <button class="tx-del" onclick="deleteTx(${t.id})">✕</button>
+            </div>
+        `;
+    }
+
+    let txFilter = 'all';
+    function setTxFilter(f) {
+        txFilter = f;
+        document.querySelectorAll('.filter-pills .pill').forEach(p => p.classList.toggle('active', p.dataset.f === f));
+        renderTxList();
+    }
+
+    function renderTxList() {
+        const search = document.getElementById('txSearch').value.trim().toLowerCase();
+        let list = [...txns].sort((a,b) => new Date(b.date) - new Date(a.date));
+        if (txFilter !== 'all') list = list.filter(t => t.type === txFilter);
+        if (search) {
+            list = list.filter(t => {
+                const cat = categories.find(c => c.id === t.categoryId);
+                return (t.note || '').toLowerCase().includes(search) || (cat && cat.name.toLowerCase().includes(search));
+            });
+        }
+        const box = document.getElementById('txList');
+        box.innerHTML = list.length ? list.map(t => txRowHtml(t)).join('') : '<div class="empty-msg">لا توجد نتائج</div>';
+    }
+
+    function deleteTx(id) {
+        if (!confirm('حذف هذه المعاملة؟')) return;
+        txns = txns.filter(t => t.id !== id);
+        saveAll();
+        renderTxList();
+        renderDashboard();
+        renderAccounts();
+    }
+
+    // ---- category manager modal ----
+    let catManType = 'income';
+    let newCatIcon = ICON_CHOICES[0];
+
+    function openCatManager() { document.getElementById('catModalBg').classList.remove('hide'); renderCatManList(); renderIconPick(); }
+    function closeCatManager() { document.getElementById('catModalBg').classList.add('hide'); }
+    function setCatManType(type) {
+        catManType = type;
+        document.getElementById('catTypeIncomeBtn').classList.toggle('active', type === 'income');
+        document.getElementById('catTypeExpenseBtn').classList.toggle('active', type === 'expense');
+        renderCatManList();
+    }
+    function renderIconPick() {
+        document.getElementById('newCatIconPick').innerHTML = ICON_CHOICES.map(ic => `
+            <span class="${ic === newCatIcon ? 'active' : ''}" onclick="pickNewCatIcon('${ic}')">${ic}</span>
+        `).join('');
+    }
+    function pickNewCatIcon(ic) { newCatIcon = ic; renderIconPick(); }
+
+    function renderCatManList() {
+        const box = document.getElementById('catManList');
+        const list = catsByType(catManType);
+        box.innerHTML = list.map(c => `
+            <div class="catman-item">
+                <span class="ic">${c.icon}</span>
+                <span class="nm">${c.name}</span>
+                <span class="badge ${c.type}">${c.type === 'income' ? 'دخل' : 'مصروف'}</span>
+                <button class="delete-btn" onclick="deleteCategory('${c.id}')">✕</button>
+            </div>
+        `).join('');
+    }
+
+    function addCategory() {
+        const name = document.getElementById('newCatName').value.trim();
+        if (!name) { alert('أدخل اسم التصنيف'); return; }
+        categories.push({ id: 'c' + (nextCatId++), name, icon: newCatIcon, type: catManType });
+        saveAll();
+        document.getElementById('newCatName').value = '';
+        renderCatManList();
+        renderTxCatGrid();
+    }
+
+    function deleteCategory(id) {
+        if (txns.some(t => t.categoryId === id)) { alert('لا يمكن حذف تصنيف مستخدم في معاملات موجودة'); return; }
+        if (!confirm('حذف هذا التصنيف؟')) return;
+        categories = categories.filter(c => c.id !== id);
+        saveAll();
+        renderCatManList();
+        renderTxCatGrid();
+    }
+
+    // ============================================================
+    // BANK ACCOUNTS
+    // ============================================================
+    function populateBankSelect() {
+        const sel = document.getElementById('bankSelect');
+        sel.innerHTML = '';
+        BANKS.forEach(b => {
+            if (b.special) return;
+            const opt = document.createElement('option');
+            opt.value = b.id;
+            opt.textContent = b.name;
+            sel.appendChild(opt);
+        });
+        sel.onchange = function() {
+            const b = BANKS.find(bk => bk.id == this.value);
+            document.getElementById('bbanHint').textContent = '📌 صيغة BBAN: ' + (b ? b.bban : 'غير معروف');
+        };
+        sel.dispatchEvent(new Event('change'));
+    }
+
+    function renderAccounts() {
+        const container = document.getElementById('accountsList');
+        if (accounts.length === 0) {
+            container.innerHTML = '<div class="empty-msg">لا توجد حسابات، أضف حسابك الأول</div>';
+        } else {
+            let html = '';
+            accounts.forEach(acc => {
+                const bal = calculateAccountBalance(acc.id);
+                const bank = BANKS.find(b => b.id == acc.bankId);
+                html += `
+                    <div class="bank-item">
+                        <div class="bank-info">
+                            <div class="name">${bank ? bank.name : 'بنك غير معروف'}</div>
+                            <div class="acc">رقم: ${acc.accountNumber}</div>
+                            <div class="balance">الرصيد: <span>${formatNum(bal)} جنيه</span></div>
+                        </div>
+                        <button class="delete-btn" onclick="deleteAccount(${acc.id})">✕</button>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+        populateTransferSelects();
+        populateTxAccountSelect();
+        renderDashboard();
+    }
+
+    function addAccount() {
+        const bankId = parseInt(document.getElementById('bankSelect').value);
+        const accNum = document.getElementById('accountNumber').value.trim();
+        const initBal = parseFloat(document.getElementById('initialBalance').value) || 0;
+        if (!accNum) { alert('الرجاء إدخال رقم الحساب'); return; }
+        if (accNum.length < 10) { alert('يرجى إدخال رقم صحيح'); return; }
+        if (accounts.some(a => a.accountNumber === accNum)) { alert('هذا الرقم مسجل مسبقاً'); return; }
+        accounts.push({ id: nextAccId++, bankId, accountNumber: accNum, initialBalance: initBal });
+        saveAll();
+        renderAccounts();
+        document.getElementById('accountNumber').value = '';
+        document.getElementById('initialBalance').value = '0';
+        alert('✅ تم إضافة الحساب');
+    }
+
+    function deleteAccount(id) {
+        if (!confirm('حذف الحساب وجميع تحويلاته؟')) return;
+        transfers = transfers.filter(tx => tx.from !== id && tx.to !== id);
+        txns.forEach(t => { if (t.accountId === id) t.accountId = null; });
+        accounts = accounts.filter(acc => acc.id !== id);
+        saveAll();
+        renderAccounts();
+        renderTransfers();
+    }
+
+    // ============================================================
+    // TRANSFERS
+    // ============================================================
+    function populateTransferSelects() {
+        const fromSel = document.getElementById('transferFrom');
+        const toSel = document.getElementById('transferToInternal');
+        [fromSel, toSel].forEach(sel => {
+            if (!sel) return;
+            const cur = sel.value;
+            sel.innerHTML = '<option value="">-- اختر --</option>';
+            accounts.forEach(acc => {
+                const bank = BANKS.find(b => b.id == acc.bankId);
+                const opt = document.createElement('option');
+                opt.value = acc.id;
+                opt.textContent = `${bank ? bank.name : 'بنك'} (${acc.accountNumber})`;
+                sel.appendChild(opt);
+            });
+            if ([...sel.options].some(o => o.value == cur)) sel.value = cur;
+        });
+    }
+
+    function toggleTransferTarget() {
+        const type = document.getElementById('transferType').value;
+        document.getElementById('internalTarget').classList.toggle('hide', type !== 'internal');
+        document.getElementById('externalTarget').classList.toggle('hide', type !== 'external');
+    }
+
+    function addTransfer() {
+        const fromId = parseInt(document.getElementById('transferFrom').value);
+        if (!fromId) { alert('اختر حساب المصدر'); return; }
+        const amount = parseFloat(document.getElementById('transferAmount').value);
+        if (!amount || amount <= 0) { alert('أدخل مبلغ صحيح'); return; }
+        const note = document.getElementById('transferNote').value.trim() || 'بدون وصف';
+        const type = document.getElementById('transferType').value;
+        let toId = null, externalData = null;
+
+        const fromBal = calculateAccountBalance(fromId);
+        if (amount > fromBal) { alert(`⚠️ الرصيد غير كافٍ! (${formatNum(fromBal)} جنيه)`); return; }
+
+        if (type === 'internal') {
+            toId = parseInt(document.getElementById('transferToInternal').value);
+            if (!toId || toId === fromId) { alert('اختر حساب وجهة مختلف'); return; }
+        } else {
+            const name = document.getElementById('externalName').value.trim();
+            const acc = document.getElementById('externalAccount').value.trim();
+            const bank = document.getElementById('externalBank').value.trim();
+            if (!name || !acc) { alert('أدخل بيانات المستفيد'); return; }
+            externalData = { name, account: acc, bank: bank || 'غير محدد' };
+        }
+
+        transfers.push({ id: Date.now(), from: fromId, to: toId, amount, note, type, external: externalData, date: new Date().toLocaleString('ar-EG') });
+        saveAll();
+        renderAccounts();
+        renderTransfers();
+        document.getElementById('transferAmount').value = '';
+        document.getElementById('transferNote').value = '';
+        document.getElementById('externalName').value = '';
+        document.getElementById('externalAccount').value = '';
+        document.getElementById('externalBank').value = '';
+        alert('✅ تم تسجيل التحويل');
+    }
+
+    function renderTransfers() {
+        const container = document.getElementById('transfersList');
+        if (transfers.length === 0) { container.innerHTML = '<div class="empty-msg">لا توجد تحويلات</div>'; return; }
+        let html = '';
+        [...transfers].reverse().forEach(tx => {
+            const fromAcc = getAccountById(tx.from);
+            const fromName = fromAcc ? (BANKS.find(b => b.id == fromAcc.bankId)?.name || 'حساب') : 'محذوف';
+            let targetText = '';
+            if (tx.type === 'internal') {
+                const toAcc = getAccountById(tx.to);
+                targetText = toAcc ? `➡️ إلى: ${BANKS.find(b => b.id == toAcc.bankId)?.name || 'حساب'}` : '➡️ وجهة محذوفة';
+            } else {
+                targetText = `➡️ خارجي: ${tx.external?.name || 'مستفيد'}`;
+            }
+            html += `
+                <div class="tx-row" style="border-right:4px solid ${tx.type==='internal'?'#2563eb':'#d97706'}; border-radius:12px; background:#f8f6f1; margin-bottom:8px; padding:12px;">
+                    <div class="tx-mid">
+                        <div class="cat">${tx.note}</div>
+                        <div class="meta">🏦 من: ${fromName} ${targetText} · 🕒 ${tx.date}</div>
+                    </div>
+                    <div class="tx-amt expense">-${formatNum(tx.amount)}</div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    function clearAllData() {
+        if (!confirm('⚠️ مسح جميع الحسابات والمعاملات والتحويلات؟')) return;
+        accounts = []; transfers = []; txns = []; nextAccId = 1;
+        saveAll();
+        renderAccounts();
+        renderTransfers();
+        renderTxList();
+        renderDashboard();
+    }
+
+    // ============================================================
+    // BBAN GENERATOR
+    // ============================================================
+    const bbanBankSelect = document.getElementById('bbanBankSelect');
+    const bbanDigits = document.getElementById('bbanDigits');
+    const bbanPrefixTag = document.getElementById('bbanPrefixTag');
+    const bbanSuffixTag = document.getElementById('bbanSuffixTag');
+    const bbanLengthPicker = document.getElementById('bbanLengthPicker');
+    const bbanLengthSelect = document.getElementById('bbanLengthSelect');
+    const bbanHintText = document.getElementById('bbanHintText');
+    const bbanSpecialNote = document.getElementById('bbanSpecialNote');
+    const bbanResultNumber = document.getElementById('bbanResultNumber');
+    const bbanCopyBtn = document.getElementById('bbanCopyBtn');
+    const bbanInputArea = document.getElementById('bbanInputArea');
+    const bbanResultBox = document.getElementById('bbanResultBox');
+
+    function populateBbanBankSelect() {
+        bbanBankSelect.innerHTML = '';
+        BANKS.forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b.id;
+            opt.textContent = b.name;
+            bbanBankSelect.appendChild(opt);
+        });
+        bbanBankSelect.addEventListener('change', renderBban);
+    }
+
+    function renderBban() {
+        const b = BANKS.find(bk => bk.id == parseInt(bbanBankSelect.value));
+        if (!b) return;
+        if (b.special) {
+            bbanInputArea.style.display = 'none';
+            bbanSpecialNote.style.display = 'block';
+            bbanSpecialNote.textContent = b.text;
+            bbanResultBox.style.display = 'none';
+            return;
+        }
+        bbanInputArea.style.display = 'block';
+        bbanSpecialNote.style.display = 'none';
+        bbanResultBox.style.display = 'block';
+        if (b.xOptions) {
+            bbanLengthPicker.style.display = 'block';
+            bbanLengthSelect.innerHTML = '';
+            b.xOptions.forEach(n => {
+                const opt = document.createElement('option');
+                opt.value = n;
+                opt.textContent = `${n} أرقام`;
+                bbanLengthSelect.appendChild(opt);
+            });
+            bbanLengthSelect.value = b.x;
+        } else {
+            bbanLengthPicker.style.display = 'none';
+        }
+        bbanPrefixTag.textContent = b.prefix || '';
+        bbanSuffixTag.textContent = b.suffix || '';
+        bbanDigits.value = '';
+        applyBbanLength();
+        updateBbanResult();
+    }
+
+    function currentBbanX() {
+        const b = BANKS.find(bk => bk.id == parseInt(bbanBankSelect.value));
+        if (!b) return 0;
+        return b.xOptions ? parseInt(bbanLengthSelect.value) : b.x;
+    }
+
+    function applyBbanLength() {
+        const x = currentBbanX();
+        bbanDigits.maxLength = x;
+        bbanDigits.placeholder = '0'.repeat(x);
+        bbanHintText.innerHTML = `أدخل <b>${x}</b> رقم من رقم حسابك في هذا البنك`;
+    }
+
+    function updateBbanResult() {
+        const b = BANKS.find(bk => bk.id == parseInt(bbanBankSelect.value));
+        if (!b || b.special) return;
+        const x = currentBbanX();
+        let val = bbanDigits.value.replace(/\D/g, '').slice(0, x);
+        if (val !== bbanDigits.value) bbanDigits.value = val;
+        const filled = val.length === x;
+        const shown = val.padEnd(x, '·');
+        bbanResultNumber.innerHTML = `${b.prefix || ''}${shown.replace(/·/g, '<span class="blank">·</span>')}${b.suffix || ''}`;
+        bbanCopyBtn.disabled = !filled;
+        bbanCopyBtn.classList.remove('copied');
+        bbanCopyBtn.textContent = 'نسخ الرقم';
+    }
+
+    async function copyBban() {
+        const b = BANKS.find(bk => bk.id == parseInt(bbanBankSelect.value));
+        if (!b || b.special) return;
+        const full = `${b.prefix || ''}${bbanDigits.value}${b.suffix || ''}`;
+        try { await navigator.clipboard.writeText(full); }
+        catch {
+            const ta = document.createElement('textarea');
+            ta.value = full;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+        }
+        bbanCopyBtn.textContent = 'تم النسخ ✓';
+        bbanCopyBtn.classList.add('copied');
+        setTimeout(() => { bbanCopyBtn.classList.remove('copied'); bbanCopyBtn.textContent = 'نسخ الرقم'; }, 1500);
+    }
+
+    bbanDigits.addEventListener('input', updateBbanResult);
+    bbanLengthSelect.addEventListener('change', () => { bbanDigits.value = ''; applyBbanLength(); updateBbanResult(); });
+    bbanCopyBtn.addEventListener('click', copyBban);
+
+    // ============================================================
+    // TABS / SUBTABS / INIT
+    // ============================================================
+    function setupTabs() {
+        document.querySelectorAll('.tab-bar > .tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab-bar > .tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                document.querySelectorAll('.app > .tab-content').forEach(c => c.classList.add('hide'));
+                document.getElementById(this.dataset.tab).classList.remove('hide');
+                if (this.dataset.tab === 'tabHome') renderDashboard();
+                if (this.dataset.tab === 'tabBban') renderBban();
+                if (this.dataset.tab === 'tabTx') { renderTxCatGrid(); renderTxList(); populateTxAccountSelect(); }
+            });
+        });
+    }
+    function setSubTab(id) {
+        document.querySelectorAll('.subnav button').forEach(b => b.classList.toggle('active', b.dataset.sub === id));
+        document.querySelectorAll('.sub-content').forEach(c => c.classList.toggle('hide', c.id !== id));
+        if (id === 'subTransfer') renderTransfers();
+    }
+
+    function init() {
+        document.getElementById('txDate').value = new Date().toISOString().slice(0,10);
+        populateBankSelect();
+        populateBbanBankSelect();
+        setTxType('expense');
+        renderAccounts();
+        renderTransfers();
+        renderTxList();
+        renderDashboard();
+        setupTabs();
+        toggleTransferTarget();
+        renderBban();
+    }
+
+    init();
+</script>
+</body>
+</html>
